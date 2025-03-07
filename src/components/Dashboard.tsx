@@ -8,7 +8,8 @@ import APIStatus from './APIStatus';
 import DebugPanel from './DebugPanel';
 import StatusIndicator from './StatusIndicator';
 import { cn } from "@/lib/utils";
-
+import { pb } from '@/Pocketbase';
+import PocketBase from 'pocketbase';
 interface Match {
   id: string;
   url: string;
@@ -50,6 +51,20 @@ const Dashboard: React.FC = () => {
     return groupMatches.every(m => m.status === 'completed');
   };
 
+  const pb = new PocketBase('http://127.0.0.1:8090'); // Replace with your live PocketBase URL
+
+  const saveDataToPocketBase = async (mergedData) => {
+      try {
+          const record = await pb.collection('scraped_data').create({
+              data: mergedData
+          });
+  
+          console.log('Data saved:', record);
+          alert('Data successfully saved to PocketBase!');
+      } catch (error) {
+          console.error('Error saving data:', error);
+      }
+  };
   // Function to download merged JSON
   const handleDownloadJSON = (baseId: string) => {
     const completedMatches = matches.filter(m =>
@@ -66,7 +81,7 @@ const Dashboard: React.FC = () => {
       transfermarkt: completedMatches.find(m => m.url.includes('transfermarkt'))?.result,
       ivibetx: completedMatches.find(m => m.url.includes('ivibetx'))?.result
     };
-
+    saveDataToPocketBase(mergedData)
     // Create and download file
     const blob = new Blob([JSON.stringify(mergedData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -79,6 +94,8 @@ const Dashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   };
   const baseUrl = 'https://tips.olma5.dev';
+
+
   const fetchFootwalldata = async (id: number) => {
     try {
       const response = await fetch(`https://api.football-data-api.com/league-players?key=33c67abbf60ce13929cf78fc532396bc9e6b960b7985c529599c8afd27227a08&season\_id=${id}`, {
@@ -111,7 +128,7 @@ const Dashboard: React.FC = () => {
         mode: 'cors',
         credentials: 'omit'
       });
-      const result=await response.json()
+      const result = await response.json()
       console.log(result, "===========!!!!!!!!");
 
       if (!response.ok) {
@@ -133,7 +150,7 @@ const Dashboard: React.FC = () => {
         mode: 'cors',
         credentials: 'omit'
       });
-      const result=await response.json();
+      const result = await response.json();
       console.log(result, "===========response@@@@@@@@");
       fetchFootwalldata(result?.competitions?.competition_id)
       if (!response.ok) {
@@ -468,12 +485,15 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="flex gap-2 ml-4">
                         {groupedMatches.every(m => m.status === 'completed') ? (
-                          <Button
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                            onClick={() => handleDownloadJSON(baseId)}
-                          >
-                            <Globe className="mr-1 h-4 w-4" /> Download JSON
-                          </Button>
+                          <>
+                            <Button
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => handleDownloadJSON(baseId)}
+                            >
+                              <Globe className="mr-1 h-4 w-4" /> Download JSON
+                            </Button>
+                          </>
+
                         ) : (
                           <Button
                             variant="destructive"
